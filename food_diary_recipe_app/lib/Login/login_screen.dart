@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:food_diary_recipe_app/Signup/Signup_screen.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:food_diary_recipe_app/AuthPage.dart'; // Import AuthPage
 
@@ -212,15 +213,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacementNamed(context, '/signup');
-                        },
-                        child: Text(
-                          "Don't have an account? Sign Up",
-                          style: TextStyle(color: Colors.white70),
-                        ),
+                     TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => SignUpScreen()),
+                        );
+                      },
+                      child: Text(
+                        "Don't have an account? Sign Up",
+                        style: TextStyle(color: Colors.white70),
                       ),
+                    ),
                     ],
                   ),
                 ),
