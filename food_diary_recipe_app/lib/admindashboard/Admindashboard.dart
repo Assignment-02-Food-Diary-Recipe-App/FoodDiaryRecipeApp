@@ -5,7 +5,7 @@ class AdminDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Admin Dashboard")),
-      body: Center(child: Text("Welcome, Admin!")),
+      body: Center(child: Text("Welcome to Admin Pannel !")),
     );
   }
 }
