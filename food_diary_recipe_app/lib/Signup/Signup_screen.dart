@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -10,23 +11,35 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  String _selectedRole = 'user'; // default value
 
   Future<void> _signUp() async {
-    try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Signup successful!")),
-      );
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Signup failed.')),
-      );
-    }
-  }
+  try {
+    UserCredential userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
 
+    User? user = userCredential.user;
+
+    // Store role in Firestore
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'email': _emailController.text.trim(),
+        'role': _selectedRole,
+      });
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Signup successful as $_selectedRole!")),
+    );
+  } on FirebaseAuthException catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e.message ?? 'Signup failed.')),
+    );
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,14 +73,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ClipOval(
-                    child: Image.asset(
-                       'assets/logo.jpg',
-                        height: 80,
-                        width: 80,
-                        fit: BoxFit.cover,
-                    ),
-                    ),
-                        
+                        child: Image.asset(
+                          'assets/logo.jpg',
+                          height: 80,
+                          width: 80,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                       SizedBox(height: 20),
                       SizedBox(height: 10),
                       Text(
@@ -76,13 +88,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: const Color.fromARGB(255, 0, 0, 0),
-                          shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
+                          shadows: [
+                            Shadow(color: Colors.black26, blurRadius: 4)
+                          ],
                         ),
                       ),
                       SizedBox(height: 25),
                       TextField(
                         controller: _emailController,
-                        style: TextStyle(color: const Color.fromARGB(255, 0, 0, 0)),
+                        style: TextStyle(
+                            color: const Color.fromARGB(255, 0, 0, 0)),
                         decoration: InputDecoration(
                           labelText: "Email",
                           labelStyle: TextStyle(color: Colors.white70),
@@ -116,16 +131,50 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ),
                       ),
+                      DropdownButtonFormField<String>(
+                        value: _selectedRole,
+                        decoration: InputDecoration(
+                          labelText: 'Select Role',
+                          labelStyle: TextStyle(color: Colors.white70),
+                          prefixIcon: Icon(Icons.person, color: Colors.white),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white54),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        dropdownColor: Colors.black87,
+                        style: TextStyle(color: Colors.white),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedRole = value!;
+                          });
+                        },
+                        items: ['user', 'admin'].map((role) {
+                          return DropdownMenuItem(
+                            value: role,
+                            child: Text(role.toUpperCase()),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(height: 20),
                       SizedBox(height: 30),
                       ElevatedButton(
                         onPressed: _signUp,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 88, 81, 156).withOpacity(0.8),
+                          backgroundColor:
+                              const Color.fromARGB(255, 88, 81, 156)
+                                  .withOpacity(0.8),
                           minimumSize: Size(double.infinity, 50),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: Text("Sign Up", style: TextStyle(fontSize: 16, color: Colors.white)),
+                        child: Text("Sign Up",
+                            style:
+                                TextStyle(fontSize: 16, color: Colors.white)),
                       ),
                       SizedBox(height: 12),
                       TextButton(

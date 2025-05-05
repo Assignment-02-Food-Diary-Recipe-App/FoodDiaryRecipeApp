@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:food_diary_recipe_app/Signup/Signup_screen.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:food_diary_recipe_app/AuthPage.dart'; // Import AuthPage
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:food_diary_recipe_app/admindashboard/Admindashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -15,25 +17,55 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   Future<void> _login() async {
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login successful!")),
-      );
-      // Navigate to AuthPage after successful login
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => AuthPage()),
-      );
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Login failed.')),
-      );
+  try {
+    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    User? user = userCredential.user;
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        String role = userDoc.get('role');
+
+        if (role == 'admin') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Welcome Admin!")),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AdminDashboard()),
+          );
+        } else if (role == 'user') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Welcome User!")),
+          );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AuthPage()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Unknown role: $role")),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("User data not found.")),
+        );
+      }
     }
+  } on FirebaseAuthException catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e.message ?? 'Login failed.')),
+    );
   }
+}
 
   Future<void> _resetPassword() async {
     if (_emailController.text.trim().isEmpty) {
