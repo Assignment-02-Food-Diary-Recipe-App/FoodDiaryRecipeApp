@@ -12,60 +12,71 @@ class LoginScreen extends StatefulWidget {
   _LoginScreenState createState() => _LoginScreenState();
 }
 
+bool _isLoading = false;
+
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   Future<void> _login() async {
-  try {
-    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
+    setState(() {
+      _isLoading = true;
+    });
 
-    User? user = userCredential.user;
-    if (user != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+    try {
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
-      if (userDoc.exists) {
-        String role = userDoc.get('role');
+      User? user = userCredential.user;
+      if (user != null) {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
 
-        if (role == 'admin') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Welcome Admin!")),
-          );
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => AdminDashboard()),
-          );
-        } else if (role == 'user') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Welcome User!")),
-          );
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => AuthPage()),
-          );
+        if (userDoc.exists) {
+          String role = userDoc.get('role');
+
+          if (role == 'admin') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Welcome Admin!")),
+            );
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => AdminDashboard()),
+            );
+          } else if (role == 'user') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Welcome User!")),
+            );
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => AuthPage()),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Unknown role: $role")),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Unknown role: $role")),
+            SnackBar(content: Text("User data not found.")),
           );
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("User data not found.")),
-        );
       }
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Login failed.')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
-  } on FirebaseAuthException catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(e.message ?? 'Login failed.')),
-    );
   }
-}
 
   Future<void> _resetPassword() async {
     if (_emailController.text.trim().isEmpty) {
@@ -90,14 +101,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _signInWithGoogle() async {
     final GoogleSignIn googleSignIn = GoogleSignIn(
-      clientId: '119754616813-h74t8bi4jnc5bqegl180l52rnn8t2p16.apps.googleusercontent.com', // Your Web Client ID
+      clientId:
+          '119754616813-h74t8bi4jnc5bqegl180l52rnn8t2p16.apps.googleusercontent.com', // Your Web Client ID
     );
 
     try {
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) return; // User canceled the login
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -168,7 +181,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
-                          shadows: [Shadow(color: Colors.black26, blurRadius: 4)],
+                          shadows: [
+                            Shadow(color: Colors.black26, blurRadius: 4)
+                          ],
                         ),
                       ),
                       SizedBox(height: 25),
@@ -222,13 +237,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       ElevatedButton(
                         onPressed: _login,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color.fromARGB(255, 88, 81, 156).withOpacity(0.8),
+                          backgroundColor:
+                              Color.fromARGB(255, 88, 81, 156).withOpacity(0.8),
                           minimumSize: Size(double.infinity, 50),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text("Log In", style: TextStyle(fontSize: 16, color: Colors.white)),
+                        child: Text("Log In",
+                            style:
+                                TextStyle(fontSize: 16, color: Colors.white)),
                       ),
                       SizedBox(height: 15),
                       ElevatedButton.icon(
@@ -245,18 +263,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       SizedBox(height: 12),
-                     TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => SignUpScreen()),
-                        );
-                      },
-                      child: Text(
-                        "Don't have an account? Sign Up",
-                        style: TextStyle(color: Colors.white70),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => SignUpScreen()),
+                          );
+                        },
+                        child: Text(
+                          "Don't have an account? Sign Up",
+                          style: TextStyle(color: Colors.white70),
+                        ),
                       ),
-                    ),
+                      if (_isLoading)
+                        Positioned.fill(
+                          child: Container(
+                            color: Colors.black.withOpacity(0.4),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
