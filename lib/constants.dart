@@ -1,0 +1,1 @@
+const List<String> adminEmails = ['admin@example.com']; // Replace with real admin email(s)
